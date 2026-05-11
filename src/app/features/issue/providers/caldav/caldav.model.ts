@@ -5,6 +5,7 @@ export interface CaldavTwoWaySyncCfg {
   isDone?: SyncDirection;
   title?: SyncDirection;
   notes?: SyncDirection;
+  dueDate?: SyncDirection;
 }
 
 export interface CaldavCfg extends BaseIssueProviderCfg {

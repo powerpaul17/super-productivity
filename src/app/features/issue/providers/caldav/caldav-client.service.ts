@@ -332,11 +332,79 @@ export class CaldavClientService {
   updateFields$(
     caldavCfg: CaldavCfg,
     issueId: string,
-    fields: { completed?: boolean; summary?: string; note?: string },
+    fields: { completed?: boolean; summary?: string; note?: string; due?: number; due_day?: string },
   ): Observable<void> {
     return from(this._updateTask(caldavCfg, issueId, fields)).pipe(
       catchError((err) => throwError({ [HANDLED_ERROR_PROP_STR]: 'Caldav: ' + err })),
     );
+  }
+
+  /** Create a new VTODO in the CalDAV calendar. */
+  async createTask(cfg: CaldavCfg, title: string): Promise<CaldavIssue> {
+    this._checkSettings(cfg);
+    const cal = await this._getCalendar(cfg);
+    const uuid = crypto.randomUUID();
+    const ICAL = await loadIcalModule();
+
+    // Build a minimal vCalendar/vTodo component
+    const comp = new ICAL.Component(['vcalendar', [], []]);
+    comp.addPropertyWithValue('prodid', '-//Super Productivity//');
+    comp.addPropertyWithValue('version', '2.0');
+    const todo = new ICAL.Component('vtodo');
+    todo.addPropertyWithValue('uid', uuid);
+    todo.addPropertyWithValue('summary', title);
+    todo.addPropertyWithValue('dtstamp', ICAL.Time.now());
+    todo.addPropertyWithValue('created', ICAL.Time.now());
+    todo.addPropertyWithValue('last-modified', ICAL.Time.now());
+    todo.addPropertyWithValue('status', 'NEEDS-ACTION');
+    comp.addSubcomponent(todo);
+    const iCalString = ICAL.stringify(comp);
+
+    // Build the task URL: {rootUrl}{calUrl}{uuid}.ics
+    const rootUrl = (cfg.caldavUrl || '').replace(/\/+$/, '');
+    const calPath = (cal.url || '').replace(/\/?$/, '/');
+    const taskUrl = rootUrl + calPath + uuid + '.ics';
+
+    if (this.isNativePlatform) {
+      await this._webDavRequest({
+        url: taskUrl,
+        method: 'PUT',
+        headers: {
+          Authorization: 'Basic ' + btoa(cfg.username + ':' + cfg.password),
+          'Content-Type': 'text/calendar; charset=utf-8',
+        },
+        data: iCalString,
+      });
+    } else {
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', taskUrl);
+        xhr.setRequestHeader('Content-Type', 'text/calendar; charset=utf-8');
+        xhr.setRequestHeader('X-Requested-With', 'SuperProductivity');
+        xhr.setRequestHeader(
+          'Authorization',
+          'Basic ' + btoa(cfg.username + ':' + cfg.password),
+        );
+        xhr.onload = (): void => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error('CalDAV PUT failed: ' + xhr.status));
+          }
+        };
+        xhr.onerror = (): void => reject(new Error('CalDAV network error'));
+        xhr.send(iCalString);
+      });
+    }
+
+    return {
+      id: uuid,
+      completed: false,
+      item_url: taskUrl,
+      summary: title,
+      labels: [],
+      etag_hash: CaldavClientService._hashEtag(String(Date.now())),
+    } as CaldavIssue;
   }
 
   protected get isNativePlatform(): boolean {
@@ -562,7 +630,7 @@ export class CaldavClientService {
   private async _updateTask(
     cfg: CaldavCfg,
     uid: string,
-    updates: { completed?: boolean; summary?: string; note?: string },
+    updates: { completed?: boolean; summary?: string; note?: string; due?: number; due_day?: string },
   ): Promise<void> {
     const cal = await this._getCalendar(cfg);
 
@@ -634,6 +702,25 @@ export class CaldavClientService {
         todo.updatePropertyWithValue('description', updates.note);
         changeObserved = true;
       }
+    }
+
+    // Handle due date (timed)
+    if (updates.due !== undefined) {
+      const dueTime = ICAL.Time.fromJSDate(new Date(updates.due), false);
+      todo.removeProperty('due');
+      todo.addPropertyWithValue('due', dueTime);
+      changeObserved = true;
+    }
+
+    // Handle due date (all-day)
+    if (updates.due_day !== undefined) {
+      // Parse YYYY-MM-DD string
+      const [y, m, d] = updates.due_day.split('-').map(Number);
+      const dueDate = ICAL.Time.fromDateParts({ year: y, month: m, day: d });
+      dueDate.isDate = true;
+      todo.removeProperty('due');
+      todo.addPropertyWithValue('due', dueDate);
+      changeObserved = true;
     }
 
     if (!changeObserved) {

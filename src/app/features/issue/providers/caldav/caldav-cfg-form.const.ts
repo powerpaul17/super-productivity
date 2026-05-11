@@ -42,6 +42,14 @@ const TWO_WAY_SYNC_FORM_FIELDS: LimitedFormlyFieldConfig<IssueProviderCaldav>[] 
           options: SYNC_DIRECTION_OPTIONS,
         },
       },
+      {
+        key: 'twoWaySync.dueDate',
+        type: 'select',
+        props: {
+          label: 'Fälligkeit (DUE)',
+          options: SYNC_DIRECTION_OPTIONS,
+        },
+      },
     ],
   },
 ];

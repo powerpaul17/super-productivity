@@ -32,6 +32,8 @@ const SYNCABLE_TASK_FIELDS: ReadonlySet<string> = new Set([
   'notes',
   'dueWithTime',
   'dueDay',
+  'deadlineWithTime',
+  'deadlineDay',
   'timeEstimate',
 ]);
 

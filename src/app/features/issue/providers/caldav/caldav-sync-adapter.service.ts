@@ -27,6 +27,30 @@ const CALDAV_FIELD_MAPPINGS: FieldMapping[] = [
     toIssueValue: (taskValue: unknown): string => (taskValue as string) ?? '',
     toTaskValue: (issueValue: unknown): string => (issueValue as string) ?? '',
   },
+  {
+    taskField: 'deadlineWithTime',
+    issueField: 'due',
+    defaultDirection: 'off',
+    toIssueValue: (taskValue: unknown): number | undefined => {
+      return (taskValue as number) ?? undefined;
+    },
+    toTaskValue: (issueValue: unknown): number | undefined => {
+      return (issueValue as number) ?? undefined;
+    },
+    mutuallyExclusive: ['deadlineDay'],
+  },
+  {
+    taskField: 'deadlineDay',
+    issueField: 'due_day',
+    defaultDirection: 'off',
+    toIssueValue: (taskValue: unknown): string | undefined => {
+      return (taskValue as string) ?? undefined;
+    },
+    toTaskValue: (issueValue: unknown): string | undefined => {
+      return (issueValue as string) ?? undefined;
+    },
+    mutuallyExclusive: ['deadlineWithTime'],
+  },
 ];
 
 @Injectable({
@@ -48,6 +72,8 @@ export class CaldavSyncAdapterService implements IssueSyncAdapter<CaldavCfg> {
       isDone: twoWay.isDone,
       title: twoWay.title,
       notes: twoWay.notes,
+      deadlineWithTime: twoWay.dueDate,
+      deadlineDay: twoWay.dueDate,
     };
   }
 
@@ -65,16 +91,30 @@ export class CaldavSyncAdapterService implements IssueSyncAdapter<CaldavCfg> {
       this._caldavClientService.updateFields$(
         cfg,
         issueId,
-        changes as { completed?: boolean; summary?: string; note?: string },
+        changes as { completed?: boolean; summary?: string; note?: string; due?: number; due_day?: string },
       ),
     );
   }
 
   extractSyncValues(issue: Record<string, unknown>): Record<string, unknown> {
+    const i = issue as unknown as CaldavIssue;
     return {
-      completed: issue['completed'],
-      summary: issue['summary'],
-      note: issue['note'],
+      completed: i.completed,
+      summary: i.summary,
+      note: i.note,
+      due: i.isDueAllDay ? undefined : i.due,
+      due_day: i.isDueAllDay ? i.due : undefined,
+    };
+  }
+
+  async createIssue(
+    title: string,
+    cfg: CaldavCfg,
+  ): Promise<{ issueId: string; issueNumber?: number; issueData: Record<string, unknown> }> {
+    const issue = await this._caldavClientService.createTask(cfg, title);
+    return {
+      issueId: issue.id,
+      issueData: issue as unknown as Record<string, unknown>,
     };
   }
 
