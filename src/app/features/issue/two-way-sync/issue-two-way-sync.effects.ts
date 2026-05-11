@@ -15,6 +15,7 @@ import { IssueProvider, IssueProviderKey } from '../issue.model';
 import { IssueLog } from '../../../core/log';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CaldavSyncAdapterService } from '../providers/caldav/caldav-sync-adapter.service';
+import { NextcloudDeckSyncAdapterService } from '../providers/nextcloud-deck/nextcloud-deck-sync-adapter.service';
 import { SnackService } from '../../../core/snack/snack.service';
 import {
   DeletedTaskIssueSidecarService,
@@ -32,6 +33,8 @@ const SYNCABLE_TASK_FIELDS: ReadonlySet<string> = new Set([
   'notes',
   'dueWithTime',
   'dueDay',
+  'deadlineWithTime',
+  'deadlineDay',
   'timeEstimate',
 ]);
 
@@ -97,6 +100,9 @@ export class IssueTwoWaySyncEffects {
   constructor() {
     const caldavAdapter = inject(CaldavSyncAdapterService);
     this._adapterRegistry.register('CALDAV', caldavAdapter);
+
+    const deckAdapter = inject(NextcloudDeckSyncAdapterService);
+    this._adapterRegistry.register('NEXTCLOUD_DECK', deckAdapter);
   }
 
   pushFieldsOnTaskUpdate$: Observable<unknown> = createEffect(

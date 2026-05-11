@@ -9,6 +9,7 @@ import {
   NextcloudDeckIssueReduced,
 } from './nextcloud-deck-issue.model';
 import { NextcloudDeckApiService } from './nextcloud-deck-api.service';
+import { NextcloudDeckSyncAdapterService } from './nextcloud-deck-sync-adapter.service';
 import { NextcloudDeckCfg } from './nextcloud-deck.model';
 import { truncate } from '../../../../util/truncate';
 import { isNextcloudDeckEnabled } from './is-nextcloud-deck-enabled.util';
@@ -19,6 +20,7 @@ import { NEXTCLOUD_DECK_POLL_INTERVAL } from './nextcloud-deck.const';
 })
 export class NextcloudDeckCommonInterfacesService extends BaseIssueProviderService<NextcloudDeckCfg> {
   private readonly _nextcloudDeckApiService = inject(NextcloudDeckApiService);
+  private readonly _deckSyncAdapter = inject(NextcloudDeckSyncAdapterService);
   private _cachedCfg?: NextcloudDeckCfg;
 
   readonly providerKey = 'NEXTCLOUD_DECK' as const;
@@ -66,6 +68,9 @@ export class NextcloudDeckCommonInterfacesService extends BaseIssueProviderServi
       title: this._formatTitle(issueData, cfg || this._cachedCfg),
       issueLastUpdated: issueData.lastModified,
       notes: (issueData as NextcloudDeckIssue).description || undefined,
+      issueLastSyncedValues: this._deckSyncAdapter.extractSyncValues(
+        issueData as unknown as Record<string, unknown>,
+      ),
     };
   }
 

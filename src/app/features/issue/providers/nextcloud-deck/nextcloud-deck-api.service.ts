@@ -114,6 +114,23 @@ export class NextcloudDeckApiService {
       .pipe(catchError((err) => this._handleError(err)));
   }
 
+  createCard$(
+    cfg: NextcloudDeckCfg,
+    boardId: number,
+    stackId: number,
+    title: string,
+  ): Observable<DeckCardResponse> {
+    this._checkSettings(cfg);
+    const url = `${this._getBaseUrl(cfg)}/boards/${boardId}/stacks/${stackId}/cards`;
+    return this._http
+      .post<DeckCardResponse>(
+        url,
+        { title, type: 'plain' },
+        { headers: this._getHeaders(cfg) },
+      )
+      .pipe(catchError((err) => this._handleError(err)));
+  }
+
   getOpenCards$(cfg: NextcloudDeckCfg): Observable<NextcloudDeckIssueReduced[]> {
     this._checkSettings(cfg);
     const boardId = cfg.selectedBoardId;

@@ -6,6 +6,13 @@ import {
 import { IssueProviderNextcloudDeck } from '../../issue.model';
 import { ISSUE_PROVIDER_COMMON_FORM_FIELDS } from '../../common-issue-form-stuff.const';
 
+const SYNC_DIRECTION_OPTIONS = [
+  { value: 'off', label: 'Aus' },
+  { value: 'pullOnly', label: 'Nur ziehen' },
+  { value: 'pushOnly', label: 'Nur schieben' },
+  { value: 'both', label: 'Beide Richtungen' },
+];
+
 export const NEXTCLOUD_DECK_CONFIG_FORM: LimitedFormlyFieldConfig<IssueProviderNextcloudDeck>[] =
   [
     {
@@ -71,6 +78,36 @@ export const NEXTCLOUD_DECK_CONFIG_FORM: LimitedFormlyFieldConfig<IssueProviderN
           templateOptions: {
             label: T.F.NEXTCLOUD_DECK.FORM.TITLE_TEMPLATE,
             description: T.F.NEXTCLOUD_DECK.FORM.TITLE_TEMPLATE_DESCRIPTION,
+          },
+        },
+      ],
+    },
+    {
+      type: 'collapsible',
+      props: { label: 'Two-Way Sync' },
+      fieldGroup: [
+        {
+          key: 'twoWaySync.isDone',
+          type: 'select',
+          templateOptions: {
+            label: 'Status (Done/Offen)',
+            options: SYNC_DIRECTION_OPTIONS,
+          },
+        },
+        {
+          key: 'twoWaySync.title',
+          type: 'select',
+          templateOptions: {
+            label: 'Titel',
+            options: SYNC_DIRECTION_OPTIONS,
+          },
+        },
+        {
+          key: 'twoWaySync.description',
+          type: 'select',
+          templateOptions: {
+            label: 'Beschreibung',
+            options: SYNC_DIRECTION_OPTIONS,
           },
         },
       ],

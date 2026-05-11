@@ -13,6 +13,11 @@ export const DEFAULT_NEXTCLOUD_DECK_CFG: NextcloudDeckCfg = {
   filterByAssignee: true,
   titleTemplate: null,
   pollIntervalMinutes: 10,
+  twoWaySync: {
+    isDone: 'pullOnly',
+    title: 'pullOnly',
+    description: 'off',
+  },
 };
 
 export const NEXTCLOUD_DECK_POLL_INTERVAL = 10 * 60 * 1000;
